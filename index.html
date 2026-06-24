@@ -618,7 +618,40 @@
     font-weight: 600;
   }
 
-  /* ========== TOAST ========== */
+  /* Save image button */
+  .save-img-btn {
+    width: 100%;
+    margin-top: 14px;
+    padding: 12px;
+    background: linear-gradient(135deg, #2c3e50 0%, #3d5166 100%);
+    color: #fff;
+    border: none;
+    border-radius: 12px;
+    font-size: 14px;
+    font-family: 'Sarabun', sans-serif;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: all 0.2s;
+    box-shadow: 0 4px 12px rgba(44,62,80,0.2);
+  }
+  .save-img-btn:hover { opacity: 0.9; transform: translateY(-1px); }
+  .save-img-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
+  /* Snapshot card — rendered off-screen for capture */
+  #snapshotCard {
+    position: fixed;
+    left: -9999px;
+    top: 0;
+    width: 380px;
+    background: #fff;
+    border-radius: 18px;
+    overflow: hidden;
+    font-family: 'Sarabun', sans-serif;
+  }
   .toast {
     position: fixed;
     bottom: 24px; left: 50%;
@@ -725,7 +758,15 @@
     </div>
   </div>
 
+  <!-- SAVE IMAGE BUTTON (แสดงหลังคำนวณ) -->
+  <button class="save-img-btn" id="saveImgBtn" style="display:none" onclick="saveAsImage()">
+    📸 บันทึกผลเป็นรูปภาพ
+  </button>
+
 </main>
+
+<!-- SNAPSHOT CARD (off-screen, ใช้ถ่ายรูป) -->
+<div id="snapshotCard"></div>
 
 <!-- ADMIN MODAL -->
 <div class="modal-overlay" id="adminModal">
@@ -765,6 +806,7 @@
 <!-- TOAST -->
 <div class="toast" id="toast"></div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script>
 // ============================================================
 // CONFIG — ใส่ URL ของ Google Apps Script Web App ที่นี่
@@ -949,6 +991,77 @@ function calculate() {
   `;
 
   showToast('✅ คำนวณเสร็จแล้ว');
+  document.getElementById('saveImgBtn').style.display = 'flex';
+}
+
+// ============================================================
+// SAVE AS IMAGE
+// ============================================================
+function saveAsImage() {
+  const btn = document.getElementById('saveImgBtn');
+  btn.disabled = true;
+  btn.innerHTML = '⏳ กำลังสร้างรูป...';
+
+  // สร้าง snapshot card สวยงามสำหรับถ่ายรูป
+  const snap = document.getElementById('snapshotCard');
+  snap.innerHTML = `
+    <div style="background:linear-gradient(135deg,#0f4424,#1a6b3a);padding:20px 22px 16px;color:#fff;">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;">
+        <div style="width:36px;height:36px;background:rgba(255,255,255,0.18);border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:20px;">⛽</div>
+        <div>
+          <div style="font-size:16px;font-weight:700;">คำนวณค่าน้ำมัน</div>
+          <div style="font-size:11px;opacity:0.7;">Rayong Isuzu Sales</div>
+        </div>
+      </div>
+    </div>
+
+    <div style="padding:18px 18px 8px;">
+      ${document.getElementById('resultsContent').innerHTML}
+    </div>
+
+    <div style="padding:8px 18px 20px;text-align:center;font-size:10px;color:#999;">
+      คำนวณเมื่อ ${new Date().toLocaleString('th-TH', {dateStyle:'medium', timeStyle:'short'})}
+    </div>
+  `;
+
+  // clone styles ที่จำเป็นสำหรับ summary-box
+  const styleEl = document.createElement('style');
+  styleEl.textContent = `
+    .result-grid { display:flex; flex-direction:column; gap:10px; }
+    .result-row { display:flex; align-items:center; justify-content:space-between; background:#f0f4f1; border-radius:10px; padding:12px 16px; }
+    .result-label { font-size:13px; color:#5a7263; font-weight:500; }
+    .result-value { font-size:18px; font-weight:700; color:#1a6b3a; }
+    .result-unit { font-size:12px; font-weight:400; color:#5a7263; margin-left:3px; }
+    .summary-box { background:linear-gradient(135deg,#0f4424,#1a6b3a); color:#fff; border-radius:12px; padding:20px; text-align:center; margin-top:4px; }
+    .summary-label { font-size:13px; opacity:0.8; margin-bottom:6px; }
+    .summary-amount { font-size:42px; font-weight:800; line-height:1; }
+    .summary-unit { font-size:18px; opacity:0.8; margin-left:4px; }
+    .summary-sub { font-size:11px; opacity:0.6; margin-top:4px; }
+  `;
+  snap.appendChild(styleEl);
+
+  html2canvas(snap, {
+    scale: 2,
+    useCORS: true,
+    backgroundColor: '#ffffff',
+    logging: false
+  }).then(canvas => {
+    // ดาวน์โหลด
+    const link = document.createElement('a');
+    const now = new Date();
+    const ts = `${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}_${String(now.getHours()).padStart(2,'0')}${String(now.getMinutes()).padStart(2,'0')}`;
+    link.download = `fuel_calc_${ts}.png`;
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+
+    btn.disabled = false;
+    btn.innerHTML = '📸 บันทึกผลเป็นรูปภาพ';
+    showToast('✅ บันทึกรูปภาพแล้ว');
+  }).catch(() => {
+    btn.disabled = false;
+    btn.innerHTML = '📸 บันทึกผลเป็นรูปภาพ';
+    showToast('❌ ไม่สามารถบันทึกรูปได้');
+  });
 }
 
 function customRound(n) {
