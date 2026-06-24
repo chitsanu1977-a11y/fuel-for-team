@@ -960,6 +960,9 @@ function customRound(n) {
 // ADMIN MODAL
 // ============================================================
 function openAdminModal() {
+  // หยุด auto-sync ตอนเปิดหน้าตั้งค่า ป้องกันค่าถูกทับ
+  if (syncInterval) { clearInterval(syncInterval); syncInterval = null; }
+
   document.getElementById('adminModal').classList.add('show');
   document.getElementById('pinError').textContent = '';
   document.getElementById('pinInput').value = '';
@@ -975,6 +978,8 @@ function openAdminModal() {
 
 function closeAdminModal() {
   document.getElementById('adminModal').classList.remove('show');
+  // เริ่ม auto-sync ใหม่หลังปิด modal
+  startAutoSync();
 }
 
 function verifyPin() {
