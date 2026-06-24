@@ -1,0 +1,1022 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>คำนวณค่าน้ำมัน</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap');
+
+  :root {
+    --primary: #1a6b3a;
+    --primary-light: #2d9355;
+    --primary-dark: #0f4424;
+    --accent: #f5a623;
+    --accent-dark: #d4891a;
+    --bg: #f0f4f1;
+    --card: #ffffff;
+    --text: #1c2b22;
+    --text-muted: #5a7263;
+    --border: #c8dace;
+    --danger: #c0392b;
+    --success: #27ae60;
+    --shadow: 0 2px 12px rgba(26,107,58,0.10);
+    --radius: 14px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Sarabun', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+  }
+
+  /* ========== HEADER ========== */
+  header {
+    background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 100%);
+    color: #fff;
+    padding: 18px 20px 14px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    box-shadow: 0 3px 16px rgba(15,68,36,0.25);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  .header-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .header-icon {
+    width: 38px; height: 38px;
+    background: rgba(255,255,255,0.18);
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px;
+  }
+
+  header h1 {
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+  }
+
+  header p {
+    font-size: 11px;
+    opacity: 0.75;
+    margin-top: 1px;
+  }
+
+  .admin-btn {
+    background: rgba(255,255,255,0.15);
+    border: 1px solid rgba(255,255,255,0.3);
+    color: #fff;
+    padding: 7px 14px;
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: 13px;
+    font-family: 'Sarabun', sans-serif;
+    font-weight: 500;
+    transition: all 0.2s;
+    display: flex; align-items: center; gap: 6px;
+  }
+
+  .admin-btn:hover { background: rgba(255,255,255,0.25); }
+
+  /* ========== SYNC STATUS ========== */
+  .sync-bar {
+    background: var(--primary-dark);
+    color: rgba(255,255,255,0.7);
+    text-align: center;
+    font-size: 11px;
+    padding: 5px;
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+  }
+
+  .sync-dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: #7ed6a7;
+    display: inline-block;
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+    0%,100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+
+  /* ========== MAIN ========== */
+  main {
+    max-width: 540px;
+    margin: 0 auto;
+    padding: 20px 16px 40px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  /* ========== CARD ========== */
+  .card {
+    background: var(--card);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+  }
+
+  .card-header {
+    background: linear-gradient(90deg, var(--primary) 0%, var(--primary-light) 100%);
+    color: #fff;
+    padding: 12px 18px;
+    font-size: 14px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .card-body { padding: 18px; }
+
+  /* ========== FUEL SELECTOR ========== */
+  .fuel-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  .fuel-btn {
+    border: 2px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 8px;
+    cursor: pointer;
+    background: #fff;
+    font-family: 'Sarabun', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-muted);
+    transition: all 0.18s;
+    text-align: center;
+    line-height: 1.4;
+  }
+
+  .fuel-btn:hover {
+    border-color: var(--primary-light);
+    color: var(--primary);
+    background: #f0faf4;
+  }
+
+  .fuel-btn.selected {
+    border-color: var(--primary);
+    background: #e8f5ee;
+    color: var(--primary);
+    font-weight: 700;
+    box-shadow: 0 0 0 3px rgba(26,107,58,0.12);
+  }
+
+  .fuel-price-badge {
+    display: block;
+    font-size: 11px;
+    font-weight: 400;
+    color: var(--text-muted);
+    margin-top: 2px;
+  }
+
+  .fuel-btn.selected .fuel-price-badge {
+    color: var(--primary-light);
+    font-weight: 600;
+  }
+
+  /* ========== FORM FIELDS ========== */
+  .field-group {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .field {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+
+  label {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .label-hint {
+    font-weight: 400;
+    color: var(--text-muted);
+    font-size: 11px;
+  }
+
+  input[type="number"] {
+    border: 2px solid var(--border);
+    border-radius: 9px;
+    padding: 11px 14px;
+    font-size: 15px;
+    font-family: 'Sarabun', sans-serif;
+    color: var(--text);
+    background: #fff;
+    outline: none;
+    transition: border-color 0.18s;
+    width: 100%;
+  }
+
+  input[type="number"]:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(26,107,58,0.10);
+  }
+
+  input[type="number"]::placeholder {
+    color: #bbb;
+  }
+
+  /* Chrome: hide arrows */
+  input[type=number]::-webkit-inner-spin-button,
+  input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
+  input[type=number] { -moz-appearance: textfield; }
+
+  /* ========== CALCULATE BUTTON ========== */
+  .calc-btn {
+    width: 100%;
+    padding: 15px;
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+    color: #fff;
+    border: none;
+    border-radius: var(--radius);
+    font-size: 16px;
+    font-family: 'Sarabun', sans-serif;
+    font-weight: 700;
+    cursor: pointer;
+    letter-spacing: 0.02em;
+    transition: all 0.2s;
+    box-shadow: 0 4px 14px rgba(26,107,58,0.25);
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+  }
+
+  .calc-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 18px rgba(26,107,58,0.32);
+  }
+
+  .calc-btn:active { transform: translateY(0); }
+
+  /* ========== RESULTS ========== */
+  .result-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .result-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--bg);
+    border-radius: 10px;
+    padding: 12px 16px;
+  }
+
+  .result-label {
+    font-size: 13px;
+    color: var(--text-muted);
+    font-weight: 500;
+  }
+
+  .result-value {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--primary);
+  }
+
+  .result-unit {
+    font-size: 12px;
+    font-weight: 400;
+    color: var(--text-muted);
+    margin-left: 3px;
+  }
+
+  /* Summary box */
+  .summary-box {
+    background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 100%);
+    color: #fff;
+    border-radius: 12px;
+    padding: 20px;
+    text-align: center;
+    margin-top: 4px;
+  }
+
+  .summary-box .summary-label {
+    font-size: 13px;
+    opacity: 0.8;
+    margin-bottom: 6px;
+  }
+
+  .summary-box .summary-amount {
+    font-size: 42px;
+    font-weight: 800;
+    line-height: 1;
+    letter-spacing: -0.01em;
+  }
+
+  .summary-box .summary-unit {
+    font-size: 18px;
+    opacity: 0.8;
+    margin-left: 4px;
+  }
+
+  .summary-box .summary-sub {
+    font-size: 11px;
+    opacity: 0.6;
+    margin-top: 4px;
+  }
+
+  /* placeholder result */
+  .result-placeholder {
+    text-align: center;
+    color: var(--text-muted);
+    padding: 30px 20px;
+    font-size: 14px;
+  }
+
+  /* ========== MODAL ========== */
+  .modal-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.55);
+    z-index: 200;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+
+  .modal-overlay.show { display: flex; }
+
+  .modal {
+    background: #fff;
+    border-radius: 18px;
+    width: 100%;
+    max-width: 480px;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+    animation: slideUp 0.25s ease;
+  }
+
+  @keyframes slideUp {
+    from { transform: translateY(30px); opacity: 0; }
+    to   { transform: translateY(0);    opacity: 1; }
+  }
+
+  .modal-header {
+    background: linear-gradient(135deg, var(--primary-dark), var(--primary));
+    color: #fff;
+    padding: 18px 20px;
+    display: flex; align-items: center; justify-content: space-between;
+    border-radius: 18px 18px 0 0;
+  }
+
+  .modal-header h2 {
+    font-size: 17px;
+    font-weight: 700;
+    display: flex; align-items: center; gap: 8px;
+  }
+
+  .modal-close {
+    background: rgba(255,255,255,0.2);
+    border: none; color: #fff;
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    cursor: pointer; font-size: 18px;
+    display: flex; align-items: center; justify-content: center;
+    transition: background 0.2s;
+  }
+
+  .modal-close:hover { background: rgba(255,255,255,0.35); }
+
+  .modal-body { padding: 20px; }
+
+  /* PIN Screen */
+  .pin-screen {
+    text-align: center;
+    padding: 20px 0;
+  }
+
+  .pin-screen p {
+    color: var(--text-muted);
+    font-size: 14px;
+    margin-bottom: 16px;
+  }
+
+  .pin-input {
+    border: 2px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 16px;
+    font-size: 22px;
+    font-family: 'Sarabun', sans-serif;
+    text-align: center;
+    letter-spacing: 6px;
+    width: 200px;
+    outline: none;
+    transition: border-color 0.18s;
+  }
+
+  .pin-input:focus { border-color: var(--primary); }
+
+  .pin-error {
+    color: var(--danger);
+    font-size: 13px;
+    margin-top: 8px;
+    min-height: 18px;
+  }
+
+  .pin-submit {
+    margin-top: 16px;
+    padding: 12px 32px;
+    background: var(--primary);
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    font-size: 15px;
+    font-family: 'Sarabun', sans-serif;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+
+  .pin-submit:hover { background: var(--primary-light); }
+
+  /* Admin settings */
+  .fuel-edit-row {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    margin-top: 4px;
+  }
+
+  .fuel-edit-item {
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 14px;
+    background: #fafffe;
+  }
+
+  .fuel-edit-name {
+    font-size: 13px;
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: var(--text);
+  }
+
+  .fuel-edit-controls {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .price-input {
+    flex: 1;
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 10px;
+    font-size: 15px;
+    font-family: 'Sarabun', sans-serif;
+    text-align: center;
+    color: var(--text);
+    outline: none;
+    transition: border-color 0.18s;
+  }
+
+  .price-input:focus { border-color: var(--primary); }
+
+  .delta-input {
+    width: 72px;
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 6px;
+    font-size: 13px;
+    font-family: 'Sarabun', sans-serif;
+    text-align: center;
+    color: var(--text);
+    outline: none;
+    transition: border-color 0.18s;
+  }
+
+  .delta-input:focus { border-color: var(--accent); }
+
+  .btn-delta {
+    width: 34px; height: 34px;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    font-size: 18px;
+    font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.18s;
+    flex-shrink: 0;
+  }
+
+  .btn-plus { background: #e8f5ee; color: var(--primary); }
+  .btn-plus:hover { background: var(--primary); color: #fff; }
+  .btn-minus { background: #fdecea; color: var(--danger); }
+  .btn-minus:hover { background: var(--danger); color: #fff; }
+
+  .save-all-btn {
+    width: 100%;
+    margin-top: 18px;
+    padding: 14px;
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+    color: #fff;
+    border: none;
+    border-radius: 12px;
+    font-size: 15px;
+    font-family: 'Sarabun', sans-serif;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: 0 4px 12px rgba(26,107,58,0.22);
+  }
+
+  .save-all-btn:hover { opacity: 0.9; transform: translateY(-1px); }
+
+  .save-status {
+    text-align: center;
+    font-size: 13px;
+    margin-top: 10px;
+    min-height: 18px;
+    color: var(--success);
+    font-weight: 600;
+  }
+
+  /* ========== TOAST ========== */
+  .toast {
+    position: fixed;
+    bottom: 24px; left: 50%;
+    transform: translateX(-50%) translateY(80px);
+    background: #1c2b22;
+    color: #fff;
+    padding: 12px 24px;
+    border-radius: 50px;
+    font-size: 14px;
+    font-weight: 500;
+    z-index: 999;
+    transition: transform 0.3s ease;
+    white-space: nowrap;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+  }
+
+  .toast.show { transform: translateX(-50%) translateY(0); }
+
+  /* ========== RESPONSIVE ========== */
+  @media (max-width: 400px) {
+    .fuel-grid { grid-template-columns: 1fr 1fr; }
+    .fuel-btn { font-size: 12px; padding: 9px 6px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div class="header-title">
+    <div class="header-icon">⛽</div>
+    <div>
+      <h1>คำนวณค่าน้ำมัน</h1>
+      <p>Rayong Isuzu Sales</p>
+    </div>
+  </div>
+  <button class="admin-btn" onclick="openAdminModal()">
+    ⚙️ ตั้งค่า
+  </button>
+</header>
+
+<!-- SYNC STATUS BAR -->
+<div class="sync-bar" id="syncBar">
+  <span class="sync-dot"></span>
+  <span id="syncStatus">กำลังโหลดราคาน้ำมัน...</span>
+</div>
+
+<main>
+
+  <!-- FUEL TYPE SELECTION -->
+  <div class="card">
+    <div class="card-header">🛢 เลือกชนิดน้ำมัน</div>
+    <div class="card-body">
+      <div class="fuel-grid" id="fuelGrid">
+        <!-- filled by JS -->
+      </div>
+    </div>
+  </div>
+
+  <!-- INPUTS -->
+  <div class="card">
+    <div class="card-header">📋 ข้อมูลการเดินทาง</div>
+    <div class="card-body">
+      <div class="field-group">
+
+        <div class="field">
+          <label>⚡ อัตราสิ้นเปลือง <span class="label-hint">(กม./ลิตร)</span></label>
+          <input type="number" id="fuelEfficiency" placeholder="" min="0" step="0.1">
+        </div>
+
+        <div class="field">
+          <label>📍 ระยะทาง <span class="label-hint">(กิโลเมตร)</span></label>
+          <input type="number" id="distance" placeholder="" min="0" step="0.1">
+        </div>
+
+        <div class="field">
+          <label>🛣 ค่าทางด่วน <span class="label-hint">(บาท, ถ้ามี)</span></label>
+          <input type="number" id="tollFee" placeholder="" min="0" step="1" value="">
+        </div>
+
+        <div class="field">
+          <label>👥 จำนวนคนหาร <span class="label-hint">(คน)</span></label>
+          <input type="number" id="persons" placeholder="" min="1" step="1">
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- CALCULATE BUTTON -->
+  <button class="calc-btn" onclick="calculate()">
+    🧮 คำนวณค่าน้ำมัน
+  </button>
+
+  <!-- RESULTS -->
+  <div class="card" id="resultsCard">
+    <div class="card-header">📊 ผลการคำนวณ</div>
+    <div class="card-body">
+      <div id="resultsContent">
+        <div class="result-placeholder">
+          กรอกข้อมูลแล้วกด "คำนวณค่าน้ำมัน"
+        </div>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<!-- ADMIN MODAL -->
+<div class="modal-overlay" id="adminModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h2>⚙️ ตั้งค่าราคาน้ำมัน</h2>
+      <button class="modal-close" onclick="closeAdminModal()">✕</button>
+    </div>
+    <div class="modal-body">
+
+      <!-- PIN SCREEN -->
+      <div class="pin-screen" id="pinScreen">
+        <p>กรุณาใส่รหัสผ่านผู้ดูแลระบบ</p>
+        <input class="pin-input" type="password" id="pinInput" placeholder="••••"
+               maxlength="4" inputmode="numeric" onkeydown="if(event.key==='Enter') verifyPin()">
+        <div class="pin-error" id="pinError"></div>
+        <br>
+        <button class="pin-submit" onclick="verifyPin()">เข้าสู่ระบบ</button>
+      </div>
+
+      <!-- ADMIN PANEL (hidden until PIN OK) -->
+      <div id="adminPanel" style="display:none;">
+        <p style="font-size:13px; color:var(--text-muted); margin-bottom:14px;">
+          แก้ไขราคาโดยใส่ราคาใหม่ในช่อง หรือใส่ค่าในช่อง Δ แล้วกด + / −
+        </p>
+        <div class="fuel-edit-row" id="fuelEditRow">
+          <!-- filled by JS -->
+        </div>
+        <button class="save-all-btn" onclick="saveAllPrices()">💾 บันทึกทั้งหมด</button>
+        <div class="save-status" id="saveStatus"></div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ============================================================
+// CONFIG — ใส่ URL ของ Google Apps Script Web App ที่นี่
+// ============================================================
+const GAS_URL = "YOUR_GAS_WEB_APP_URL_HERE";
+
+// ============================================================
+// STATE
+// ============================================================
+const FUEL_TYPES = [
+  "ดีเซล",
+  "ดีเซล B20",
+  "ดีเซลพรีเมี่ยม",
+  "แก๊สโซฮอล์ 95",
+  "แก๊สโซฮอล์ 91",
+  "แก๊สโซฮอล์ E85",
+  "แก๊สโซฮอล์ E20",
+  "แก๊สโซฮอล์พรีเมี่ยม"
+];
+
+let fuelPrices = {};
+let selectedFuel = null;
+let adminUnlocked = false;
+let syncInterval = null;
+
+// ============================================================
+// INIT
+// ============================================================
+document.addEventListener('DOMContentLoaded', () => {
+  renderFuelGrid();
+  loadPrices();
+  startAutoSync();
+
+  // Auto-open in browser (for LINE in-app browser redirect)
+  redirectIfLineApp();
+});
+
+function redirectIfLineApp() {
+  const ua = navigator.userAgent || '';
+  if (/Line\//i.test(ua)) {
+    const url = location.href;
+    // Try to open in external browser
+    location.href = 'intent://' + url.replace(/^https?:\/\//, '') +
+      '#Intent;scheme=https;action=android.intent.action.VIEW;end';
+  }
+}
+
+// ============================================================
+// RENDER FUEL GRID
+// ============================================================
+function renderFuelGrid() {
+  const grid = document.getElementById('fuelGrid');
+  grid.innerHTML = FUEL_TYPES.map(f => `
+    <button class="fuel-btn" data-fuel="${f}" onclick="selectFuel('${f}')">
+      ${f}
+      <span class="fuel-price-badge" id="badge-${encodeId(f)}">
+        ${fuelPrices[f] ? fuelPrices[f].toFixed(2) + ' ฿/ล.' : '—'}
+      </span>
+    </button>
+  `).join('');
+
+  if (selectedFuel) {
+    const btn = document.querySelector(`[data-fuel="${selectedFuel}"]`);
+    if (btn) btn.classList.add('selected');
+  }
+}
+
+function encodeId(name) {
+  return name.replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_ก-๙]/g, '');
+}
+
+function updateBadges() {
+  FUEL_TYPES.forEach(f => {
+    const badge = document.getElementById('badge-' + encodeId(f));
+    if (badge) {
+      badge.textContent = fuelPrices[f] ? fuelPrices[f].toFixed(2) + ' ฿/ล.' : '—';
+    }
+  });
+}
+
+function selectFuel(name) {
+  selectedFuel = name;
+  document.querySelectorAll('.fuel-btn').forEach(btn => {
+    btn.classList.toggle('selected', btn.dataset.fuel === name);
+  });
+}
+
+// ============================================================
+// LOAD PRICES FROM SHEETS
+// ============================================================
+async function loadPrices() {
+  try {
+    const res = await fetch(`${GAS_URL}?action=getPrices`);
+    const data = await res.json();
+    if (data.success && data.prices) {
+      fuelPrices = data.prices;
+      updateBadges();
+      updateSyncStatus(`ซิงค์ล่าสุด: ${new Date().toLocaleTimeString('th-TH')}`);
+      // Update admin inputs if open
+      if (adminUnlocked) updateAdminInputs();
+    }
+  } catch (e) {
+    updateSyncStatus('⚠️ ไม่สามารถซิงค์ได้', true);
+  }
+}
+
+function startAutoSync() {
+  if (syncInterval) clearInterval(syncInterval);
+  syncInterval = setInterval(loadPrices, 10000);
+}
+
+function updateSyncStatus(msg, error = false) {
+  document.getElementById('syncStatus').textContent = msg;
+  document.querySelector('.sync-dot').style.background = error ? '#e74c3c' : '#7ed6a7';
+}
+
+// ============================================================
+// CALCULATE
+// ============================================================
+function calculate() {
+  if (!selectedFuel) {
+    showToast('⚠️ กรุณาเลือกชนิดน้ำมัน');
+    return;
+  }
+
+  const efficiency = parseFloat(document.getElementById('fuelEfficiency').value);
+  const distance   = parseFloat(document.getElementById('distance').value);
+  const toll       = parseFloat(document.getElementById('tollFee').value) || 0;
+  const persons    = parseInt(document.getElementById('persons').value) || 1;
+
+  if (!efficiency || efficiency <= 0) { showToast('⚠️ กรุณาใส่อัตราสิ้นเปลือง'); return; }
+  if (!distance   || distance   <= 0) { showToast('⚠️ กรุณาใส่ระยะทาง'); return; }
+
+  const pricePerLiter = fuelPrices[selectedFuel] || 0;
+  if (!pricePerLiter) { showToast('⚠️ ไม่พบราคาน้ำมัน กรุณารอซิงค์'); return; }
+
+  const litersUsed  = distance / efficiency;
+  const fuelCost    = litersUsed * pricePerLiter;
+  const totalCost   = fuelCost + toll;
+  const perPerson   = totalCost / persons;
+
+  // Round-half convention: < 0.5 → floor, >= 0.5 → ceil
+  const perPersonRounded = customRound(perPerson);
+
+  const fmt = (n) => parseFloat(n.toFixed(4)).toLocaleString('th-TH', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 4
+  });
+
+  document.getElementById('resultsContent').innerHTML = `
+    <div class="result-grid">
+      <div class="result-row">
+        <span class="result-label">⛽ น้ำมันที่ใช้</span>
+        <span class="result-value">${fmt(litersUsed)}<span class="result-unit">ลิตร</span></span>
+      </div>
+      <div class="result-row">
+        <span class="result-label">💰 ค่าน้ำมัน</span>
+        <span class="result-value">${fmt(fuelCost)}<span class="result-unit">บาท</span></span>
+      </div>
+      <div class="result-row">
+        <span class="result-label">🛣 ค่าทางด่วน</span>
+        <span class="result-value">${fmt(toll)}<span class="result-unit">บาท</span></span>
+      </div>
+      <div class="result-row">
+        <span class="result-label">🔢 รวมทั้งหมด</span>
+        <span class="result-value">${fmt(totalCost)}<span class="result-unit">บาท</span></span>
+      </div>
+      <div class="result-row">
+        <span class="result-label">👥 ต่อคน (${persons} คน)</span>
+        <span class="result-value">${fmt(perPerson)}<span class="result-unit">บาท</span></span>
+      </div>
+    </div>
+
+    <div class="summary-box" style="margin-top:14px;">
+      <div class="summary-label">สรุปค่าน้ำมันต่อคน</div>
+      <div>
+        <span class="summary-amount">${perPersonRounded}</span>
+        <span class="summary-unit">บาท</span>
+      </div>
+      <div class="summary-sub">(${selectedFuel} · ${pricePerLiter} ฿/ลิตร)</div>
+    </div>
+  `;
+
+  showToast('✅ คำนวณเสร็จแล้ว');
+}
+
+function customRound(n) {
+  const floor = Math.floor(n);
+  return (n - floor) >= 0.5 ? floor + 1 : floor;
+}
+
+// ============================================================
+// ADMIN MODAL
+// ============================================================
+function openAdminModal() {
+  document.getElementById('adminModal').classList.add('show');
+  document.getElementById('pinError').textContent = '';
+  document.getElementById('pinInput').value = '';
+
+  if (!adminUnlocked) {
+    document.getElementById('pinScreen').style.display = 'block';
+    document.getElementById('adminPanel').style.display = 'none';
+    setTimeout(() => document.getElementById('pinInput').focus(), 200);
+  } else {
+    showAdminPanel();
+  }
+}
+
+function closeAdminModal() {
+  document.getElementById('adminModal').classList.remove('show');
+}
+
+function verifyPin() {
+  const pin = document.getElementById('pinInput').value;
+  if (pin === '7151') {
+    adminUnlocked = true;
+    document.getElementById('pinError').textContent = '';
+    showAdminPanel();
+  } else {
+    document.getElementById('pinError').textContent = '❌ รหัสผ่านไม่ถูกต้อง';
+    document.getElementById('pinInput').value = '';
+    document.getElementById('pinInput').focus();
+  }
+}
+
+function showAdminPanel() {
+  document.getElementById('pinScreen').style.display = 'none';
+  document.getElementById('adminPanel').style.display = 'block';
+  renderAdminRows();
+}
+
+function renderAdminRows() {
+  const container = document.getElementById('fuelEditRow');
+  container.innerHTML = FUEL_TYPES.map(f => `
+    <div class="fuel-edit-item">
+      <div class="fuel-edit-name">⛽ ${f}</div>
+      <div class="fuel-edit-controls">
+        <input class="price-input" type="number" id="admin-price-${encodeId(f)}"
+               value="${fuelPrices[f] || ''}" step="0.01" min="0" placeholder="">
+        <input class="delta-input" type="number" id="admin-delta-${encodeId(f)}"
+               placeholder="Δ" step="0.01">
+        <button class="btn-delta btn-plus"  onclick="applyDelta('${f}', 1)" title="เพิ่ม">+</button>
+        <button class="btn-delta btn-minus" onclick="applyDelta('${f}',-1)" title="ลด">−</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function updateAdminInputs() {
+  FUEL_TYPES.forEach(f => {
+    const inp = document.getElementById('admin-price-' + encodeId(f));
+    if (inp && document.activeElement !== inp) {
+      inp.value = fuelPrices[f] || '';
+    }
+  });
+}
+
+function applyDelta(fuel, sign) {
+  const id = encodeId(fuel);
+  const priceInp = document.getElementById('admin-price-' + id);
+  const deltaInp = document.getElementById('admin-delta-' + id);
+  const delta = parseFloat(deltaInp.value) || 0;
+  const current = parseFloat(priceInp.value) || 0;
+  const newPrice = Math.max(0, +(current + sign * delta).toFixed(4));
+  priceInp.value = newPrice;
+  deltaInp.value = '';
+}
+
+async function saveAllPrices() {
+  const prices = {};
+  let valid = true;
+  FUEL_TYPES.forEach(f => {
+    const val = parseFloat(document.getElementById('admin-price-' + encodeId(f)).value);
+    if (isNaN(val) || val < 0) { valid = false; return; }
+    prices[f] = val;
+  });
+
+  if (!valid) { showToast('⚠️ กรุณาตรวจสอบราคาให้ครบ'); return; }
+
+  document.getElementById('saveStatus').textContent = '⏳ กำลังบันทึก...';
+
+  try {
+    const res = await fetch(GAS_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'updateAllPrices', pin: '7151', prices })
+    });
+    const data = await res.json();
+    if (data.success) {
+      fuelPrices = { ...fuelPrices, ...prices };
+      updateBadges();
+      document.getElementById('saveStatus').textContent = '✅ บันทึกและซิงค์กับชีตแล้ว';
+      showToast('✅ อัปเดตราคาน้ำมันแล้ว');
+      setTimeout(() => document.getElementById('saveStatus').textContent = '', 3000);
+    } else {
+      document.getElementById('saveStatus').textContent = '❌ ' + (data.error || 'เกิดข้อผิดพลาด');
+    }
+  } catch (e) {
+    document.getElementById('saveStatus').textContent = '❌ ไม่สามารถเชื่อมต่อได้';
+  }
+}
+
+// ============================================================
+// TOAST
+// ============================================================
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+</script>
+</body>
+</html>
