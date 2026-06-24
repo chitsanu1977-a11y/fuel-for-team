@@ -470,14 +470,59 @@
     border-radius: 10px;
     padding: 12px 14px;
     background: #fafffe;
+    transition: border-color 0.2s;
+  }
+
+  .fuel-edit-item.changed {
+    border-color: var(--accent);
+    background: #fffbf2;
+  }
+
+  .fuel-edit-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
   }
 
   .fuel-edit-name {
     font-size: 13px;
     font-weight: 600;
-    margin-bottom: 8px;
     color: var(--text);
   }
+
+  .fuel-price-info {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+  }
+
+  .price-original {
+    color: var(--text-muted);
+    background: #f0f4f1;
+    border-radius: 5px;
+    padding: 2px 8px;
+    font-weight: 500;
+  }
+
+  .price-arrow {
+    color: var(--text-muted);
+    font-size: 11px;
+  }
+
+  .price-preview {
+    font-weight: 700;
+    border-radius: 5px;
+    padding: 2px 8px;
+    font-size: 12px;
+    transition: all 0.2s;
+    display: none;
+  }
+
+  .price-preview.up   { color: #c0392b; background: #fdecea; }
+  .price-preview.down { color: #1a6b3a; background: #e8f5ee; }
+  .price-preview.same { color: var(--text-muted); background: #f0f4f1; }
 
   .fuel-edit-controls {
     display: flex;
@@ -496,12 +541,26 @@
     color: var(--text);
     outline: none;
     transition: border-color 0.18s;
+    min-width: 0;
   }
 
   .price-input:focus { border-color: var(--primary); }
 
+  .delta-section {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex-shrink: 0;
+  }
+
+  .delta-label {
+    font-size: 10px;
+    color: var(--text-muted);
+    white-space: nowrap;
+  }
+
   .delta-input {
-    width: 72px;
+    width: 64px;
     border: 1.5px solid var(--border);
     border-radius: 8px;
     padding: 8px 6px;
@@ -710,7 +769,7 @@
 // ============================================================
 // CONFIG — ใส่ URL ของ Google Apps Script Web App ที่นี่
 // ============================================================
-const GAS_URL = "https://script.google.com/macros/s/AKfycbyXpXfxxnmv8-bACab9utaPCud5IjyHQs_p351KfaU8bOIGWNhPOfWD71rhc-0rHR-1/exec";
+const GAS_URL = "YOUR_GAS_WEB_APP_URL_HERE";
 
 // ============================================================
 // STATE
@@ -939,24 +998,88 @@ function showAdminPanel() {
 
 function renderAdminRows() {
   const container = document.getElementById('fuelEditRow');
-  container.innerHTML = FUEL_TYPES.map(f => `
-    <div class="fuel-edit-item">
-      <div class="fuel-edit-name">⛽ ${f}</div>
+  container.innerHTML = FUEL_TYPES.map(f => {
+    const id = encodeId(f);
+    const orig = fuelPrices[f] ? fuelPrices[f].toFixed(2) : '—';
+    return `
+    <div class="fuel-edit-item" id="item-${id}">
+      <div class="fuel-edit-header">
+        <div class="fuel-edit-name">⛽ ${f}</div>
+        <div class="fuel-price-info">
+          <span class="price-original" id="orig-${id}">${orig} ฿/ล.</span>
+          <span class="price-arrow" id="arrow-${id}" style="display:none">→</span>
+          <span class="price-preview" id="preview-${id}"></span>
+        </div>
+      </div>
       <div class="fuel-edit-controls">
-        <input class="price-input" type="number" id="admin-price-${encodeId(f)}"
-               value="${fuelPrices[f] || ''}" step="0.01" min="0" placeholder="">
-        <input class="delta-input" type="number" id="admin-delta-${encodeId(f)}"
-               placeholder="Δ" step="0.01">
+        <input class="price-input" type="number" id="admin-price-${id}"
+               value="${fuelPrices[f] || ''}" step="0.01" min="0" placeholder=""
+               oninput="onPriceInput('${f}')">
+        <div class="delta-section">
+          <span class="delta-label">±</span>
+          <input class="delta-input" type="number" id="admin-delta-${id}"
+                 placeholder="0.00" step="0.01"
+                 oninput="onDeltaInput('${f}')">
+        </div>
         <button class="btn-delta btn-plus"  onclick="applyDelta('${f}', 1)" title="เพิ่ม">+</button>
         <button class="btn-delta btn-minus" onclick="applyDelta('${f}',-1)" title="ลด">−</button>
       </div>
     </div>
-  `).join('');
+  `}).join('');
+}
+
+function onPriceInput(fuel) {
+  const id = encodeId(fuel);
+  const newVal = parseFloat(document.getElementById('admin-price-' + id).value);
+  const origVal = fuelPrices[fuel] || 0;
+  showPreview(fuel, origVal, newVal);
+}
+
+function onDeltaInput(fuel) {
+  const id = encodeId(fuel);
+  const delta = parseFloat(document.getElementById('admin-delta-' + id).value) || 0;
+  const currentPrice = parseFloat(document.getElementById('admin-price-' + id).value) || fuelPrices[fuel] || 0;
+  // preview both + and − simultaneously using the typed delta (show + result)
+  const previewVal = +(currentPrice + delta).toFixed(4);
+  showPreview(fuel, currentPrice, previewVal);
+}
+
+function showPreview(fuel, origVal, newVal) {
+  const id = encodeId(fuel);
+  const preview = document.getElementById('preview-' + id);
+  const arrow   = document.getElementById('arrow-' + id);
+  const item    = document.getElementById('item-' + id);
+
+  if (isNaN(newVal) || newVal === origVal) {
+    preview.style.display = 'none';
+    arrow.style.display = 'none';
+    item.classList.remove('changed');
+    return;
+  }
+
+  const diff = newVal - origVal;
+  preview.style.display = 'inline-block';
+  arrow.style.display   = 'inline-block';
+  item.classList.add('changed');
+
+  if (diff > 0) {
+    preview.className = 'price-preview up';
+    preview.textContent = `${newVal.toFixed(2)} ฿/ล. (+${diff.toFixed(2)})`;
+  } else if (diff < 0) {
+    preview.className = 'price-preview down';
+    preview.textContent = `${newVal.toFixed(2)} ฿/ล. (${diff.toFixed(2)})`;
+  } else {
+    preview.className = 'price-preview same';
+    preview.textContent = `${newVal.toFixed(2)} ฿/ล.`;
+  }
 }
 
 function updateAdminInputs() {
   FUEL_TYPES.forEach(f => {
-    const inp = document.getElementById('admin-price-' + encodeId(f));
+    const id = encodeId(f);
+    const inp = document.getElementById('admin-price-' + id);
+    const origEl = document.getElementById('orig-' + id);
+    if (origEl) origEl.textContent = (fuelPrices[f] ? fuelPrices[f].toFixed(2) : '—') + ' ฿/ล.';
     if (inp && document.activeElement !== inp) {
       inp.value = fuelPrices[f] || '';
     }
@@ -969,9 +1092,11 @@ function applyDelta(fuel, sign) {
   const deltaInp = document.getElementById('admin-delta-' + id);
   const delta = parseFloat(deltaInp.value) || 0;
   const current = parseFloat(priceInp.value) || 0;
+  const origVal = fuelPrices[fuel] || 0;
   const newPrice = Math.max(0, +(current + sign * delta).toFixed(4));
   priceInp.value = newPrice;
   deltaInp.value = '';
+  showPreview(fuel, origVal, newPrice);
 }
 
 async function saveAllPrices() {
@@ -997,6 +1122,18 @@ async function saveAllPrices() {
     if (data.success) {
       fuelPrices = { ...fuelPrices, ...prices };
       updateBadges();
+      // Reset all previews after save
+      FUEL_TYPES.forEach(f => {
+        const id = encodeId(f);
+        const origEl  = document.getElementById('orig-' + id);
+        const preview = document.getElementById('preview-' + id);
+        const arrow   = document.getElementById('arrow-' + id);
+        const item    = document.getElementById('item-' + id);
+        if (origEl)  origEl.textContent = (fuelPrices[f] ? fuelPrices[f].toFixed(2) : '—') + ' ฿/ล.';
+        if (preview) { preview.style.display = 'none'; }
+        if (arrow)   { arrow.style.display   = 'none'; }
+        if (item)    { item.classList.remove('changed'); }
+      });
       document.getElementById('saveStatus').textContent = '✅ บันทึกและซิงค์กับชีตแล้ว';
       showToast('✅ อัปเดตราคาน้ำมันแล้ว');
       setTimeout(() => document.getElementById('saveStatus').textContent = '', 3000);
