@@ -685,7 +685,6 @@
     <div class="header-icon">⛽</div>
     <div>
       <h1>คำนวณค่าน้ำมัน</h1>
-      <p>Rayong Isuzu Sales</p>
     </div>
   </div>
   <button class="admin-btn" onclick="openAdminModal()">
@@ -958,6 +957,14 @@ function calculate() {
 
   document.getElementById('resultsContent').innerHTML = `
     <div class="result-grid">
+      <div class="result-row">
+        <span class="result-label">📍 ระยะทาง</span>
+        <span class="result-value">${fmt(distance)}<span class="result-unit">กม.</span></span>
+      </div>
+      <div class="result-row">
+        <span class="result-label">⚡ อัตราสิ้นเปลือง</span>
+        <span class="result-value">${fmt(efficiency)}<span class="result-unit">กม./ล.</span></span>
+      </div>
       <div class="result-row">
         <span class="result-label">⛽ น้ำมันที่ใช้</span>
         <span class="result-value">${fmt(litersUsed)}<span class="result-unit">ลิตร</span></span>
